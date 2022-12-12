@@ -6,7 +6,7 @@
 We apply the same data preprocessing strategy for the dataset:
 
 - Extract the images from each video;
-- Use reliable face tracking technology (Blazeface) to detect faces in each frame and crop the image around the face.
+- Use reliable face tracking technology ([Blazeface](https://github.com/hollance/BlazeFace-PyTorch)) to detect faces in each frame and crop the image around the face.
 
 When detecting videos created with face manipulation, it is possible to train the detectors on the entire frames of the videos, or simply crop the area around the face, and apply the detector exclusively to this cropped area. We applied the latter.
 
