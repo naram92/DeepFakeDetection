@@ -10,7 +10,7 @@ We apply the same data preprocessing strategy for the dataset:
 
 When detecting videos created with face manipulation, it is possible to train the detectors on the entire frames of the videos, or simply crop the area around the face, and apply the detector exclusively to this cropped area. We applied the latter.
 
-We used a series of different but simple data augmentation techniques. In particular, we randomly apply downscaling, horizontal flipping, random brightness contrast, hue saturation, noise, ... It should be noted here that data augmentation is only applied to applied only to training images.
+We used a series of different but simple data augmentation techniques. In particular, we randomly apply downscaling, horizontal flipping, random brightness contrast, hue saturation, noise, ... It should be noted here that data augmentation is only applied to training images.
 
 ## Model and train
 In our experiments, we consider the EfficientNetB4 model as a baseline and we performed 4 configuration types :
