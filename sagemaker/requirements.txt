@@ -1,0 +1,10 @@
+poutyne
+efficientnet-pytorch
+torch 
+torchvision 
+torchaudio
+opencv-python
+pandas
+matplotlib
+tqdm
+boto3

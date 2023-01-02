@@ -13,7 +13,7 @@ When detecting videos created with face manipulation, it is possible to train th
 We used a series of different but simple data augmentation techniques. In particular, we randomly apply downscaling, horizontal flipping, random brightness contrast, hue saturation, noise, ... It should be noted here that data augmentation is only applied to training images.
 
 ## Model and train
-In our experiments, we consider the EfficientNetB4 model as a baseline, motivated by the good compromise offered by this architecture in terms of number of parameters, runtime and classification performance, and we performed 4 configuration types :
+In our experiments, we consider the [EfficientNetB4]() model as a baseline, motivated by the good compromise offered by this architecture in terms of number of parameters, runtime and classification performance, and we performed 4 configuration types :
 
 - Configuration 1: Using the EfficicentNetB4 pre-trained model and freezing all convolution parameters.
 - Configuration 2: Using the EfficicentNetB4 pre-trained model and re-training the last 8 MBConvBlocks with the last two layers (the convolution layer and the classifier).
