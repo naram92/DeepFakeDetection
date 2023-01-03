@@ -20,7 +20,6 @@ from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss, RunningAverage
 from ignite.handlers import LRScheduler, ModelCheckpoint, global_step_from_engine, Checkpoint, DiskSaver, EarlyStopping
 from ignite.contrib.handlers import ProgressBar, PiecewiseLinear
-import ignite.contrib.engines.common as common
 
 IMG_SIZE = 224
 
@@ -106,10 +105,10 @@ def train(args):
     df_train, df_val, _ = get_data(args.train, args.validation, args.test)
     # train 
     train_dataset = FFPPDataset(df_train, transform=train_transform)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=args.num_workers)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     # validation
     valid_dataset = FFPPDataset(df_val, transform=val_tranform)
-    val_loader = DataLoader(valid_dataset, batch_size=32, num_workers=args.num_workers)
+    val_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     
     # model
     model = EfficientNet.from_pretrained('efficientnet-b4')
