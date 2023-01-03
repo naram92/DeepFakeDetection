@@ -2,3 +2,6 @@ datasets/
 dev_datasets/
 logs/
 models/
+**/tmp
+**/model
+**/data

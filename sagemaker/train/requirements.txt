@@ -1,0 +1,4 @@
+poutyne
+efficientnet-pytorch
+torchdata
+pytorch-ignite
