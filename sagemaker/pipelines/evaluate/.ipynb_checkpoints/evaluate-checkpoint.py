@@ -1,37 +1,32 @@
-import pandas as pd
 import pickle
 import argparse
 import json
 import numpy as np
 import logging 
 import pathlib
+import tarfile
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 
-import torchvision
 from torchvision import transforms
 
-# def install(package):
-#     subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+import subprocess
+import sys
+def install(package):
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
 
-# install('efficientnet-pytorch')
-# install('pytorch-ignite')
-from efficientnet_pytorch import EfficientNet
+install('pytorch-ignite')
+install('pillow')
 
 from ignite.engine import Events, Engine
-from ignite.metrics import Accuracy, Loss, RunningAverage
-from ignite.handlers import LRScheduler, ModelCheckpoint, global_step_from_engine, Checkpoint, DiskSaver, EarlyStopping
-from ignite.contrib.handlers import ProgressBar, PiecewiseLinear
+from ignite.metrics import Accuracy, Loss
 
 import boto3
 from PIL import Image
 import os
 from pathlib import Path 
-import numpy as np
 
 FFPP_SRC = 'dev_datasets/'
 FACES_DST = os.path.join(FFPP_SRC, 'extract_faces')
@@ -88,15 +83,11 @@ def parse_args():
 
     return parser.parse_args()
 
-def get_data(train_dir, val_dir, test_dir):
-    with open(train_dir, "rb") as f:
-        df_train = pickle.loads(f.read())
-    with open(val_dir, "rb") as f:
-        df_val = pickle.loads(f.read())
-    with open(test_dir, "rb") as f:
+def get_data(test_dir):
+    with open(os.path.join(test_dir, 'test.pkl'), "rb") as f:
         df_test = pickle.loads(f.read())
     
-    return df_train, df_val, df_test
+    return df_test
 
 def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -111,11 +102,9 @@ def train(args):
     ])
      
     # get data
-    train_path = '/opt/ml/processing/train/train.pkl'
-    val_path = '/opt/ml/processing/validation/val.pkl'
-    test_path = '/opt/ml/processing/train/test.pkl'
+    test_path = '/opt/ml/processing/test'
     
-    _, _, df_test = get_data(train_path, val_path, test_path)
+    df_test = get_data(test_path)
     # test
     test_dataset = FFPPDataset(df_test, transform=val_tranform)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)

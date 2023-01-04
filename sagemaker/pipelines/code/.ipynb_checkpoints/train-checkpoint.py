@@ -1,24 +1,22 @@
-import pandas as pd
+
 import pickle
 import argparse
 import json
-import numpy as np
+import os
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 
-import torchvision
+
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from efficientnet_pytorch import EfficientNet
-from s3dataset import *
+from s3dataset import FFPPDataset
 
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss, RunningAverage
-from ignite.handlers import LRScheduler, ModelCheckpoint, global_step_from_engine, Checkpoint, DiskSaver, EarlyStopping
+from ignite.handlers import global_step_from_engine, Checkpoint, DiskSaver, EarlyStopping
 from ignite.contrib.handlers import ProgressBar, PiecewiseLinear
 
 IMG_SIZE = 224
@@ -58,20 +56,17 @@ def parse_args():
     parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
     parser.add_argument("--train", type=str, default=os.environ["SM_CHANNEL_TRAIN"])
     parser.add_argument("--validation", type=str, default=os.environ["SM_CHANNEL_VALIDATION"])
-    parser.add_argument("--test", type=str, default=os.environ["SM_CHANNEL_TEST"])
     parser.add_argument("--num-gpus", type=int, default=os.environ["SM_NUM_GPUS"])
 
     return parser.parse_args()
 
-def get_data(train_dir, val_dir, test_dir):
-    with open(train_dir, "rb") as f:
+def get_data(train_dir, val_dir):
+    with open(os.path.join(train_dir, 'train.pkl'), "rb") as f:
         df_train = pickle.loads(f.read())
-    with open(val_dir, "rb") as f:
+    with open(os.path.join(val_dir, 'val.pkl'), "rb") as f:
         df_val = pickle.loads(f.read())
-    with open(test_dir, "rb") as f:
-        df_test = pickle.loads(f.read())
     
-    return df_train, df_val, df_test
+    return df_train, df_val
 
 def train(args):
     use_cuda = args.num_gpus > 0
@@ -102,7 +97,7 @@ def train(args):
     ])
 
     # get data
-    df_train, df_val, _ = get_data(args.train, args.validation, args.test)
+    df_train, df_val = get_data(args.train, args.validation)
     # train 
     train_dataset = FFPPDataset(df_train, transform=train_transform)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)

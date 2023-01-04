@@ -1,6 +1,6 @@
 # from torch.utils.data import IterableDataset
 # from torchdata.datapipes.iter import IterableWrapper, S3FileLoader
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import boto3
 from PIL import Image
 import os
