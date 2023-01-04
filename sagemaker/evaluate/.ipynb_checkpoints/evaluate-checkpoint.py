@@ -15,19 +15,58 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision
 from torchvision import transforms
 
+# def install(package):
+#     subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+
+# install('efficientnet-pytorch')
+# install('pytorch-ignite')
 from efficientnet_pytorch import EfficientNet
-from s3dataset import *
 
 from ignite.engine import Events, Engine
 from ignite.metrics import Accuracy, Loss, RunningAverage
 from ignite.handlers import LRScheduler, ModelCheckpoint, global_step_from_engine, Checkpoint, DiskSaver, EarlyStopping
 from ignite.contrib.handlers import ProgressBar, PiecewiseLinear
 
+import boto3
+from PIL import Image
+import os
+from pathlib import Path 
+import numpy as np
+
+FFPP_SRC = 'dev_datasets/'
+FACES_DST = os.path.join(FFPP_SRC, 'extract_faces')
+
+s3_resource = boto3.resource('s3')
+s3_client = boto3.client('s3')
+bucket_name = 'deepfake-detection'
+bucket = s3_resource.Bucket(bucket_name)
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 IMG_SIZE = 224
+
+class FFPPDataset(Dataset):
+    def __init__(self, df_faces, faces_dir=FACES_DST, transform=None):
+        super().__init__()
+        self.faces_dir = Path(faces_dir)
+        self.data, self.targets = df_faces['path'], df_faces['label']
+        self.transform = transform
+        
+    def __getitem__(self, index):
+        img_path, target = self.data[index], self.targets[index]
+        target = np.array([target,]).astype(np.float32)
+        
+        file_stream = bucket.Object(str(self.faces_dir.joinpath(img_path))).get()['Body']
+        img = Image.open(file_stream)
+        
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
+    
+    def __len__(self):
+        return len(self.data)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -46,7 +85,6 @@ def parse_args():
         metavar="NW",
         help="number of workers (default: 2)",
     )
-    parser.add_argument("--seed", type=int, default=2, metavar="S", help="random seed (default: 2)")
 
     return parser.parse_args()
 
@@ -61,12 +99,10 @@ def get_data(train_dir, val_dir, test_dir):
     return df_train, df_val, df_test
 
 def train(args):
-    use_cuda = args.num_gpus > 0
-    device = torch.device("cuda" if use_cuda > 0 else "cpu")
-
-    torch.manual_seed(args.seed)
-    if use_cuda:
-        torch.cuda.manual_seed(args.seed)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # data augmentation
+    pre_trained_mean, pre_trained_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
         
     val_tranform = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),
@@ -75,19 +111,26 @@ def train(args):
     ])
      
     # get data
-    _, _, df_test = get_data(args.train, args.validation, args.test)
+    train_path = '/opt/ml/processing/train/train.pkl'
+    val_path = '/opt/ml/processing/validation/val.pkl'
+    test_path = '/opt/ml/processing/train/test.pkl'
+    
+    _, _, df_test = get_data(train_path, val_path, test_path)
     # test
     test_dataset = FFPPDataset(df_test, transform=val_tranform)
-    test_loader = DataLoader(valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
     
     # model
     model_path = "/opt/ml/processing/model/model.tar.gz"
     with tarfile.open(model_path) as tar:
         tar.extractall(path="..")
         
-    logger.debug("Loading neumf model.")
+    logger.debug("Loading model")
     model = torch.jit.load('model.pth')
     model.to(device)
+    
+    # loss_function
+    criterion = nn.BCEWithLogitsLoss()
     
     def eval_step(engine, batch):
         model.eval()
@@ -100,9 +143,15 @@ def train(args):
     
     evaluator = Engine(eval_step)
     
+    def thresholded_output_transform(output):
+        y_pred, y = output
+        y_pred = torch.sigmoid(y_pred)
+        y_pred = torch.round(y_pred)
+        return y_pred, y
+    
     # Accuracy and loss metrics are defined
     metrics = {
-        "accuracy": Accuracy(),
+        "accuracy": Accuracy(output_transform=thresholded_output_transform),
         "loss": Loss(criterion)
     }
     

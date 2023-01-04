@@ -1,9 +1,5 @@
 poutyne
 efficientnet-pytorch
-torch 
-torchvision 
-torchaudio
-torchdata
 pandas
 matplotlib
 tqdm

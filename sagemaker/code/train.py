@@ -113,6 +113,7 @@ def train(args):
     # model
     model = EfficientNet.from_pretrained('efficientnet-b4')
     model._fc = nn.Linear(model._conv_head.out_channels, 1)
+    model.to(device)
 
     for name, param in model.named_parameters():
         if not name.startswith('_fc'):
@@ -150,19 +151,27 @@ def train(args):
             return y_pred, y
     
     trainer = Engine(train_step)
-    evaluator = Engine(eval_step)
+    train_evaluator = Engine(eval_step)
+    valid_evaluator = Engine(eval_step)
     
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
     
+    def thresholded_output_transform(output):
+        y_pred, y = output
+        y_pred = torch.sigmoid(y_pred)
+        y_pred = torch.round(y_pred)
+        return y_pred, y
+    
     # Accuracy and loss metrics are defined
     metrics = {
-        "accuracy": Accuracy(),
+        "accuracy": Accuracy(output_transform=thresholded_output_transform),
         "loss": Loss(criterion)
     }
     
     # Attach metrics to the evaluator
     for name, metric in metrics.items():
-        metric.attach(evaluator, name)
+        metric.attach(train_evaluator, name)
+        metric.attach(valid_evaluator, name)
     
     pbar = ProgressBar(persist=True, bar_format="")
     pbar.attach(trainer, ['loss'])
@@ -174,11 +183,11 @@ def train(args):
         return -val_loss
 
     handler = EarlyStopping(patience=5, score_function=score_function, trainer=trainer)
-    evaluator.add_event_handler(Events.COMPLETED, handler)
+    valid_evaluator.add_event_handler(Events.COMPLETED, handler)
     
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):
-        evaluator.run(train_loader)
+        train_evaluator.run(train_loader)
         metrics = train_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_loss = metrics['loss']
@@ -202,11 +211,11 @@ def train(args):
         filename_pattern='{filename_prefix}.pth'
     )
     
-    evaluator.add_event_handler(Events.COMPLETED, handler)
+    valid_evaluator.add_event_handler(Events.COMPLETED, handler)
     
     def log_validation_results(engine):
-        evaluator.run(val_loader)
-        metrics = validation_evaluator.state.metrics
+        valid_evaluator.run(val_loader)
+        metrics = valid_evaluator.state.metrics
         avg_accuracy = metrics['accuracy']
         avg_loss = metrics['loss']
         pbar.log_message(
@@ -224,6 +233,7 @@ def train(args):
     return
 
 def save_model_to_torchscript(model, model_dir, loader):
+    print('save model to torchscript')
     # save file path
     save_file_path = os.path.join(model_dir,'model.pth')
     batch = next(iter(loader))
@@ -231,6 +241,7 @@ def save_model_to_torchscript(model, model_dir, loader):
     model.load_state_dict(torch.load(f=save_file_path))
     # Set the model into eval mode
     model.eval()
+    model.set_swish(memory_efficient=False) 
     # trace the model
     traced_module = torch.jit.trace(model, batch[:-1])
     # save the model 

@@ -7,11 +7,11 @@ import pandas as pd
 import numpy as np
 from face_extract import preprocess_ffpp, extract_faces
 
-FFPP_SRC = 'datasets/'
+FFPP_SRC = 'dev_datasets/'
 VIDEODF_SRC = os.path.join(FFPP_SRC, 'ffpp_videos.pkl')
 
-BLAZEFACE_WEIGHTS = "blazeface/blazeface.pth"
-BLAZEFACE_ANCHORS = "blazeface/anchors.npy"
+BLAZEFACE_WEIGHTS = os.path.join(FFPP_SRC, 'blazeface/blazeface.pth')
+BLAZEFACE_ANCHORS = os.path.join(FFPP_SRC, 'blazeface/anchors.npy') 
 
 FACES_DST = os.path.join(FFPP_SRC, 'extract_faces')
 FACESDF_DST = os.path.join(FACES_DST, 'ffpp_faces.pkl')
@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 
 def make_splits(df_faces, train_ratio=0.7, val_ratio=0.15):
     """
-    Splitting the dataset into three subsets : train, validation and test.
+    Splitting the dataset into three subsets: train, validation, and test
     """
     random_original_videos = np.random.permutation(df_faces[(df_faces['label'] == 0)]['video'].unique())
     train_num = int(len(random_original_videos) * train_ratio)
@@ -45,16 +45,16 @@ def main():
     
     #args
     parser = argparse.ArgumentParser()
-    parser.add_argument('--frames_per_video', type=str)
-    parser.add_argument('--batch_size', type=str)
-    parser.add_argument('--face_size', type=str)
-    parser.add_argument('--thread_num', type=str)
+    parser.add_argument('--frames_per_video', type=int)
+    parser.add_argument('--batch_size', type=int)
+    parser.add_argument('--face_size', type=int)
     args = parser.parse_args()
     
     # preprocess ff++ data
     preprocess_ffpp(FFPP_SRC, VIDEODF_SRC)
     # Run extraction
-    df_faces = extract_faces(FFPP_SRC, VIDEODF_SRC, FACES_DST, FACESDF_DST,  CHECKPOINT_DST, args.frames_per_video, args.batch_size, args.face_size, args.thread_num)
+    df_faces = extract_faces(FFPP_SRC, VIDEODF_SRC, FACES_DST, FACESDF_DST,  CHECKPOINT_DST, BLAZEFACE_WEIGHTS, BLAZEFACE_ANCHORS, 
+                             args.frames_per_video, args.batch_size, args.face_size)
     # Split data
     df_train, df_val, df_test = make_splits(df_faces)
     print("Saving train, val and test dataframes")

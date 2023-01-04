@@ -16,6 +16,8 @@ from blazeface import BlazeFace
 import cv2
 from PIL import Image
 
+import torch
+
 s3_resource = boto3.resource('s3')
 s3_client = boto3.client('s3')
 bucket_name = 'deepfake-detection'
@@ -23,12 +25,11 @@ bucket = s3_resource.Bucket(bucket_name)
 
 def preprocess_ffpp(source_dir, video_dataset_path):
     """
-    Preprocessing video dataset : Set the label of each video {0 for real video, 
-    1 for fake video} and the video original of fake videos.
-    :param source_dir: the parent directory that contains all videos (real or 
-                        fake)
-    :param video_dataset_path: Path to save the videos DataFrame[path, name, 
-                                label, original]
+        Preprocessing video dataset : Set the label of each video {0 for real video, 
+        1 for fake video} and the video original of fake videos.
+        :param source_dir: The parent directory that contains all videos (real or fake)
+        :param video_dataset_path: The path to save the videos DataFrame[path, name, 
+                                    label, original]
     """ 
     try:
         s3_resource.Object(bucket_name, video_dataset_path).load()
@@ -43,7 +44,7 @@ def preprocess_ffpp(source_dir, video_dataset_path):
     if file_exists:
         df_videos = pickle.loads(s3_resource.Bucket(bucket_name).Object(video_dataset_path).get()['Body'].read())
     else :
-        # Si le fichier n'existe pas dans S3, vous pouvez créer le DataFrame de la façon suivante :
+        # Si le fichier n'existe pas dans S3
         print('Creating video DataFrame')
         # df_videos = pd.DataFrame(columns=['path', 'label', 'name', 'original'])
 
@@ -76,7 +77,7 @@ def preprocess_ffpp(source_dir, video_dataset_path):
         # Créez le DataFrame en utilisant la liste des chemins de fichiers .mp4
         df_videos = pd.DataFrame({'path': mp4_files})
         # Enlevez le repertoire racine datasets/ dans le path
-        df_videos['path'] = df_videos['path'].replace('datasets/', '', regex=True)
+        df_videos['path'] = df_videos['path'].replace('dev_datasets/', '', regex=True)
         # Convertissez les chaînes de caractères en objets PurePosixPath
         df_videos['path'] = df_videos['path'].apply(lambda x: PurePosixPath(x))           
 
@@ -113,22 +114,19 @@ def preprocess_ffpp(source_dir, video_dataset_path):
 def extract_faces_on_video(video_df, source_dir, faces_dir, checkpoint_dir, 
                            blazeface, num_frames, face_size=224, margin=0.25):
     """
-    This function extracts `num_frames` frames in the videos that contain a face.
-    :param video_df: the DataFrame that contains all informations about the 
-                    datasets. It has the following columns: [path, name, 
-                    label, original].
-    :param source_dir: the parent directory that contains the datasets
-    :param faces_dir: the directory path to save the extracted faces from the 
-                    datasets
-    :param checkpoint_dir: the directory path to save the DataFrame[path, label,
-                    video, original, frame_index, score, detection] of the 
-                    extracted faces
-    :param blazeface: a Balazeface object that will be used as face detector in
-                    all frames
-    :param num_frames: number of frames to extract in each video.
-    :param face_size (default = 224) : each frame extracted will have the size
-                    face_size x face_size
-    :param margin (default = 0.25) : Offset margin of face detection.
+        This function extracts `num_frames` frames from the videos that contain a face.
+        :param video_df: The DataFrame that contains all information about the datasets. 
+            It has the following columns: [path, name, label, original].
+        :param source_dir: The parent directory that contains the datasets
+        :param faces_dir: The directory path to save the extracted faces from the datasets
+        :param checkpoint_dir: The directory path to save the DataFrame[path, label, video, 
+            original, frame_index, score, detection] of the extracted faces
+        :param blazeface: A Balazeface object that will be used as the face detector in all 
+            frames
+        :param num_frames: The number of frames to extract in each video
+        :param face_size (default = 224) : Each frame extracted will have the size 
+            face_size x face_size
+        :param margin (default = 0.25) : The offset margin for face detection.
     """
     video_idx, video_df = video_df
     faces_checkpoint_path = Path(checkpoint_dir).joinpath(video_df['path'].split('.')[0] + '_faces.pkl')
@@ -281,27 +279,25 @@ def extract_faces_on_video(video_df, source_dir, faces_dir, checkpoint_dir,
 
         return faces
 
-def extract_faces(source_dir, videos_df, faces_dir, faces_df, checkpoint_dir, 
+
+def extract_faces(source_dir, videos_df, faces_dir, faces_df, checkpoint_dir, blazeface_weights, blazeface_anchors, 
                   frames_per_video=15, batch_size=32, face_size=224, thread_num=7):
     """
-    This function extracts all frames in the dataset that contain a face.
-    :param source_dir: the parent directory that contains the datasets
-    :param videos_df: the path of the DataFrame containing all informations 
-                    about the videos in the dataset.
-    :param faces_dir: the directory path to save the extracted faces from the 
-                    datasets
-    :param faces_df: the path to save the DataFrame containing all informations 
-                    about the extracted faces.
-    :param checkpoint_dir: the directory path to save the DataFrame[path, label,
-                    video, original, frame_index, score, detection] of the 
-                    extracted faces
-    :param frames_per_video (default = 15): number of frames to extract in each
-                    video.
-    :param batch_size (default = 16): batch size of videos to treat together.
-    :param face_size (default = 224) : each frame extracted will have the size
-                    face_size x face_size
-    :thread_num (default = 4): number of threads to be used during the 
-                    extraction.
+        This function extracts all frames from the dataset that contain a face.
+        :param source_dir: The parent directory that contains the datasets
+        :param videos_df: The path of the DataFrame containing all information 
+            about the videos in the dataset.
+        :param faces_dir: The directory path to save the extracted faces from the datasets
+        :param faces_df: The path to save the DataFrame containing all informations 
+            about the extracted faces
+        :param checkpoint_dir: The directory path to save the DataFrame[path, label, 
+            video, original, frame_index, score, detection] of the extracted faces
+        :param blazeface_weights: The Blazeface weights directory
+        :param blazeface_weights: The Blazeface anchors directory
+        :param frames_per_video (default = 15): The number of frames to extract in each video
+        :param batch_size (default = 16): The batch size of videos to process together
+        :param face_size (default = 224) : Each frame extracted will have the size face_size x face_size
+        :thread_num (default = 4): The number of threads to be used during the extraction
     """
     # On vérifie si ffpp_faces.pkl existe
     try:
@@ -327,8 +323,8 @@ def extract_faces(source_dir, videos_df, faces_dir, faces_df, checkpoint_dir,
     
     print('Loading Blazeface model')
     blazeface_net = BlazeFace().to(device)
-    blazeface_net.load_weights(io.BytesIO(s3_client.get_object(Bucket=bucket_name, Key=BLAZEFACE_WEIGHTS)['Body'].read()))
-    blazeface_net.load_anchors(io.BytesIO(s3_client.get_object(Bucket=bucket_name, Key=BLAZEFACE_ANCHORS)['Body'].read()))    
+    blazeface_net.load_weights(io.BytesIO(s3_resource.Bucket(bucket_name).Object(blazeface_weights).get()['Body'].read()))
+    blazeface_net.load_anchors(io.BytesIO(s3_resource.Bucket(bucket_name).Object(blazeface_anchors).get()['Body'].read()))    
     blazeface_net.min_score_thresh = 0.8
     
     ## Face extraction
