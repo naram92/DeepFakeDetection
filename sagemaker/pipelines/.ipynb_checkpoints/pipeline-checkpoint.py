@@ -116,9 +116,9 @@ def get_pipeline(
     sagemaker_project_arn=None,
     role=None,
     default_bucket=None,
-    dataset_prefix=None,
-    output_prefix=None,
     model_package_group_name=None,
+    dataset_prefix="dev_datasets",
+    output_prefix="preprocessed_data",
     pipeline_name="Deepfake-detection-pipeline",
     base_job_prefix="Deepfake",
     processing_instance_type="ml.m5.xlarge",
@@ -168,6 +168,7 @@ def get_pipeline(
                     on="/",
                     values=[
                         "s3://{}".format(default_bucket),
+                        dataset_prefix,
                         output_prefix,
                         timestamp_prefix,
                         "train",
@@ -181,6 +182,7 @@ def get_pipeline(
                     on="/",
                     values=[
                         "s3://{}".format(default_bucket),
+                        dataset_prefix,
                         output_prefix,
                         timestamp_prefix,
                         "validation",
@@ -194,6 +196,7 @@ def get_pipeline(
                     on="/",
                     values=[
                         "s3://{}".format(default_bucket),
+                        dataset_prefix,
                         output_prefix,
                         timestamp_prefix,
                         "test",
