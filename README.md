@@ -3,7 +3,7 @@
 [FaceForensics++](https://github.com/ondyari/FaceForensics) is a large-scale facial manipulation dataset generated using deepfake technologies. Each deepfake method is applied to 1000 high-quality videos uploaded to YouTube, manually selected to present subjects almost face-on without occlusion.
 
 ## Preprocessing
-We apply the same data preprocessing strategy for the dataset:
+We followed the same data preprocessing strategy for the dataset:
 
 - Extract the images from each video;
 - Use reliable face tracking technology ([Blazeface](https://github.com/hollance/BlazeFace-PyTorch)) to detect faces in each frame and crop the image around the face.
