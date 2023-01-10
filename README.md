@@ -8,16 +8,16 @@ We apply the same data preprocessing strategy for the dataset:
 - Extract the images from each video;
 - Use reliable face tracking technology ([Blazeface](https://github.com/hollance/BlazeFace-PyTorch)) to detect faces in each frame and crop the image around the face.
 
-When detecting videos created with face manipulation, it is possible to train the detectors on the entire frames of the videos, or simply crop the area around the face, and apply the detector exclusively to this cropped area. We applied the latter.
+When detecting videos with manipulated faces, it is possible to train the detectors on the entire frames of the videos or to crop the area around the face and apply the detector exclusively to this cropped region. We chose the latter approach.
 
-We used a series of different but simple data augmentation techniques. In particular, we randomly apply downscaling, horizontal flipping, random brightness contrast, hue saturation, noise, ... It should be noted here that data augmentation is only applied to training images.
+We applied a series of simple but effective data augmentation techniques, including downscaling, horizontal flipping, random brightness and contrast adjustments, hue and saturation changes, noise injection, ... It is worth noting that data augmentation was only applied to training images.
 
 ## Model and train
-In our experiments, we consider the [EfficientNetB4]() model as a baseline, motivated by the good compromise offered by this architecture in terms of number of parameters, runtime and classification performance, and we performed 4 configuration types :
+In our experiments, we used the [EfficientNetB4](https://github.com/lukemelas/EfficientNet-PyTorch) model as a baseline due to its favorable balance of number of parameters, runtime, and classification performance. We evaluated four configurations:
 
-- Configuration 1: Using the EfficicentNetB4 pre-trained model and freezing all convolution parameters.
-- Configuration 2: Using the EfficicentNetB4 pre-trained model and re-training the last 8 MBConvBlocks with the last two layers (the convolution layer and the classifier).
-- Configuration 3: Using the EfficicentNetB4 pre-trained model and retraining the last 16 MBConvBlocks with the last two layers (the convolution layer and the classifier).
+- Configuration 1: Using the EfficicentNetB4 pre-trained model and freezing all convolutional parameters.
+- Configuration 2: Using the EfficicentNetB4 pre-trained model and retraining the last 8 MBConvBlocks with the last two layers (the convolutional layer and the classifier).
+- Configuration 3: Using the EfficicentNetB4 pre-trained model and retraining the last 16 MBConvBlocks with the last two layers (the convolutional layer and the classifier).
 - Configuration 4: Using the EfficicentNetB4 pre-trained model and integrating a Spatial Transformer Network after MBConvBloc 20.
 
 
