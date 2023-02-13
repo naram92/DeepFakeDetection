@@ -78,6 +78,7 @@ def preprocess_ffpp(source_dir, video_dataset_path):
         df_videos = pd.DataFrame({'path': mp4_files})
         # Enlevez le repertoire racine datasets/ dans le path
         df_videos['path'] = df_videos['path'].replace('dev_datasets/', '', regex=True)
+        # df_videos['path'] = df_videos['path'].replace('datasets/', '', regex=True)
         # Convertissez les chaînes de caractères en objets PurePosixPath
         df_videos['path'] = df_videos['path'].apply(lambda x: PurePosixPath(x))           
 

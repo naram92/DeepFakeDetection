@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 FFPP_SRC = 'dev_datasets/'
+# FFPP_SRC = 'datasets/'
 FACES_DST = os.path.join(FFPP_SRC, 'extract_faces')
 
 s3_resource = boto3.resource('s3')

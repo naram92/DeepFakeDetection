@@ -32,7 +32,7 @@ def parse_args():
         help="input batch size for training (default: 32)",
     )
     parser.add_argument(
-        "--epochs", type=int, default=1, metavar="N", help="number of epochs to train (default: 2)"
+        "--epochs", type=int, default=5, metavar="N", help="number of epochs to train (default: 1)"
     )
     parser.add_argument(
         "--learning-rate",

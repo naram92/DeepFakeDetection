@@ -227,7 +227,7 @@ def get_pipeline(
         instance_count=1,
         output_path=model_path,
         hyperparameters={"batch-size": 32, 
-                         "epochs": 1, 
+                         "epochs": 5, 
                          "learning-rate": 1e-4
                         },
     )

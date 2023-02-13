@@ -8,6 +8,7 @@ import numpy as np
 from face_extract import preprocess_ffpp, extract_faces
 
 FFPP_SRC = 'dev_datasets/'
+# FFPP_SRC = 'datasets/'
 VIDEODF_SRC = os.path.join(FFPP_SRC, 'ffpp_videos.pkl')
 
 BLAZEFACE_WEIGHTS = os.path.join(FFPP_SRC, 'blazeface/blazeface.pth')
